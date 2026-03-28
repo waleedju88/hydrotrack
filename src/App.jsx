@@ -275,7 +275,7 @@ function HomeTab({ token, userId, goal, onGoalChange, logs, onLogged, onSignOut 
   const logWater = async (ml) => {
     setLoading(true);
     await sb.logIntake(token, userId, ml);
-    onLogged();
+    await onLogged();
     setToast(msgs[Math.floor(Math.random() * msgs.length)]);
     setTimeout(() => setToast(""), 2500);
     setLoading(false);
@@ -283,12 +283,12 @@ function HomeTab({ token, userId, goal, onGoalChange, logs, onLogged, onSignOut 
 
   const editLog = async (id, ml) => {
     await sb.updateLog(token, id, ml);
-    onLogged();
+    await onLogged();
   };
 
   const deleteEntry = async (id) => {
     await sb.deleteLog(token, id);
-    onLogged();
+    await onLogged();
   };
 
   return (
@@ -307,10 +307,10 @@ function HomeTab({ token, userId, goal, onGoalChange, logs, onLogged, onSignOut 
       </div>
 
       {/* Water blob */}
-      <div className="fu1" style={{ marginTop: 28, marginBottom: 6 }}><WaterBlob pct={pct} /></div>
+      <div style={{ marginTop: 28, marginBottom: 6 }}><WaterBlob pct={pct} /></div>
 
       {/* Amount row */}
-      <div className="fu2" style={{ textAlign: "center", marginBottom: 2 }}>
+      <div style={{ textAlign: "center", marginBottom: 2 }}>
         <span style={{ fontSize: 22, fontWeight: 600 }}>{toL(todayTotal)}</span>
         <span style={{ fontSize: 15, color: "var(--t2)", margin: "0 6px" }}>of</span>
         <span style={{ fontSize: 15, fontWeight: 500 }}>{toL(goal)} L</span>
@@ -616,7 +616,7 @@ function MainApp({ token, userId, goal, onGoalChange, onSignOut }) {
 
   useEffect(() => { fetchToday(); fetchAll(); }, [fetchToday, fetchAll]);
 
-  const refresh = () => { fetchToday(); fetchAll(); };
+  const refresh = async () => { await fetchToday(); fetchAll(); };
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)", overflowY: "auto" }}>
