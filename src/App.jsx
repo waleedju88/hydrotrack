@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const SUPABASE_URL = "https://otvvfifeifuirewagxia.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90dnZmaWZlaWZ1aXJld2FneGlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzE4MTksImV4cCI6MjA5MDIwNzgxOX0.5e8ALgMws7exCYrckxctFtgZh5cq7hjNJa8HZmEQDNw";
 
 // ── TRANSLATIONS ──────────────────────────────────────────────────────────────
 const T = {
