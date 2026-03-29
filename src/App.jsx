@@ -274,7 +274,8 @@ const HOURS = [
 const DEFAULT_SETTINGS = { notifInterval: 30, notifStart: 8, notifEnd: 21, notifEnabled: false };
 const loadSettings = () => { try { return { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem("hydro_settings") || "{}") }; } catch { return DEFAULT_SETTINGS; } };
 const saveSettings = (s) => localStorage.setItem("hydro_settings", JSON.stringify(s));
-const loadLang = () => localStorage.getItem("hydro_lang") || "en";
+const VALID_LANGS = ["en", "ar"];
+const loadLang = () => { const l = localStorage.getItem("hydro_lang"); return VALID_LANGS.includes(l) ? l : "en"; };
 const saveLang = (l) => localStorage.setItem("hydro_lang", l);
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
