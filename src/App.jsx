@@ -195,6 +195,101 @@ const T = {
     notifEnabled3: "تم تفعيل التذكيرات!",
     language: "اللغة",
   },
+  fr: {
+    appName: "HydroTrack",
+    appSub: "Votre compagnon d'hydratation quotidien",
+    signIn: "Se connecter",
+    createAccount: "Créer un compte",
+    emailPlaceholder: "Adresse e-mail",
+    passwordPlaceholder: "Mot de passe",
+    pleaseWait: "Veuillez patienter...",
+    orContinueWith: "ou continuer avec",
+    continueGoogle: "Continuer avec Google",
+    agreeText: "En vous connectant, vous acceptez de boire plus d'eau 💧",
+    checkEmail: "Vérifiez votre e-mail pour confirmer !",
+    fillFields: "Veuillez remplir tous les champs.",
+    setGoal: "Définir votre objectif",
+    setGoalSub: "Quelle quantité d'eau visez-vous par jour ?",
+    lPerDay: "L / jour",
+    startTracking: "Commencer →",
+    saving: "Enregistrement...",
+    goodMorning: "Bonjour",
+    goodAfternoon: "Bon après-midi",
+    goodEvening: "Bonsoir",
+    stayHydrated: "Restez Hydraté",
+    signOut: "Se déconnecter",
+    of: "sur",
+    remaining: "L restants aujourd'hui",
+    goalReached: "Objectif quotidien atteint ! 🎉",
+    editGoal: "Modifier l'objectif",
+    selectAmount: "Choisir la quantité",
+    enterCustom: "Entrer une quantité personnalisée",
+    tapToLog: "Appuyez pour enregistrer",
+    ml: "ml",
+    todayIntake: "Consommation du jour",
+    logWater: "Enregistrer",
+    logging: "...",
+    customAmount: "Quantité personnalisée",
+    customAmountSub: "Entrez une quantité entre 1 et 5000 ml",
+    log: "Enregistrer",
+    confirm: "Confirmer",
+    cancel: "Annuler",
+    setTodayGoal: "Objectif du jour",
+    setTodayGoalSub: "Choisissez un préréglage ou entrez une quantité",
+    setAsGoal: "Définir",
+    asGoal: "comme objectif du jour",
+    customAmountMl: "Quantité personnalisée (ml)",
+    editEntry: "Modifier l'entrée",
+    editEntrySub: "entrez la quantité correcte",
+    save: "Enregistrer",
+    overview: "Aperçu",
+    yourStats: "Vos statistiques",
+    today: "Aujourd'hui",
+    thisWeek: "Cette semaine",
+    thisMonth: "Ce mois-ci",
+    thisYear: "Cette année",
+    week: "Semaine",
+    month: "Mois",
+    year: "Année",
+    goalPerDay: "Objectif",
+    preferences: "Préférences",
+    settings: "Paramètres",
+    notifications: "Notifications",
+    reminders: "Rappels",
+    active: "Actif",
+    paused: "En pause",
+    blockedNotif: "Bloqué — vérifiez les paramètres Safari",
+    tapEnable: "Appuyez sur Activer pour démarrer",
+    enable: "Activer",
+    remindEvery: "Rappeler toutes les",
+    remindEveryDesc: "Fréquence des rappels",
+    startAt: "Commencer à",
+    startAtDesc: "Premier rappel de la journée",
+    stopAt: "Arrêter à",
+    stopAtDesc: "Dernier rappel de la journée",
+    defaultGoal: "🎯 Objectif quotidien par défaut",
+    currentGoal: "Actuel :",
+    defaultGoalNote: "C'est votre objectif par défaut. Vous pouvez le modifier chaque jour avec le bouton",
+    defaultGoalNote2: "sur l'écran d'accueil.",
+    goalSaved: "Objectif enregistré !",
+    addToHome: "Ajouter à l'écran d'accueil",
+    addToHomeSub: "Dans Safari, appuyez sur Partager → Ajouter à l'écran d'accueil pour la meilleure expérience et les notifications complètes sur iPhone.",
+    notifEnabled: "Activé",
+    notifSummary: "Toutes les",
+    loading: "Chargement...",
+    ofDailyGoal: "de l'objectif quotidien",
+    min15: "15 min",
+    min30: "30 min",
+    min45: "45 min",
+    hr1: "1 heure",
+    hr15: "1h30",
+    hr2: "2 heures",
+    notifTitle: "C'est l'heure de boire ! 💧",
+    notifBody: "Restez sur la bonne voie pour atteindre votre objectif d'hydratation.",
+    notifEnabled2: "HydroTrack 💧",
+    notifEnabled3: "Les rappels sont maintenant activés !",
+    language: "Langue",
+  },
 };
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
@@ -211,7 +306,40 @@ const sb = {
   async getLogs(t, uid, from, to) { const r = await fetch(`${SUPABASE_URL}/rest/v1/water_logs?user_id=eq.${uid}&logged_at=gte.${from}&logged_at=lte.${to}&order=logged_at.asc`, { headers: this.h(t) }); return r.json(); },
   async getProfile(t, uid) { const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, { headers: this.h(t) }); const rows = await r.json(); return rows[0]; },
   async upsertProfile(t, uid, data) { const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles`, { method: "POST", headers: { ...this.h(t), Prefer: "resolution=merge-duplicates,return=representation" }, body: JSON.stringify({ id: uid, ...data }) }); return r.json(); },
+  async refreshToken(refreshToken) {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST", headers: this.h(),
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    return r.json();
+  },
 };
+
+// ── TOKEN REFRESH ─────────────────────────────────────────────────────────────
+async function refreshSession() {
+  const refresh = localStorage.getItem("hydro_refresh");
+  if (!refresh) return null;
+  try {
+    const data = await sb.refreshToken(refresh);
+    if (data?.access_token) {
+      localStorage.setItem("hydro_token", data.access_token);
+      if (data.refresh_token) localStorage.setItem("hydro_refresh", data.refresh_token);
+      return data.access_token;
+    }
+  } catch {}
+  return null;
+}
+
+// Wraps any sb call — if it gets a 401/empty result, refreshes token and retries once
+async function withAuth(token, fn) {
+  const result = await fn(token);
+  // Supabase returns [] or {} with error for expired token
+  if (result && result.code === "PGRST301") {
+    const newToken = await refreshSession();
+    if (newToken) return fn(newToken);
+  }
+  return result;
+}
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 const toL = (ml) => (ml / 1000).toFixed(2);
@@ -339,11 +467,15 @@ function WaterBlob({ pct, t }) {
 }
 
 // ── LANGUAGE TOGGLE ───────────────────────────────────────────────────────────
+const LANGS = ["en", "ar", "fr"];
+const LANG_LABELS = { en: "EN", ar: "ع", fr: "FR" };
+const NEXT_LANG_LABEL = { en: "العربية", ar: "Français", fr: "English" };
+
 function LangToggle({ lang, onToggle }) {
   return (
     <button onClick={onToggle} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 10, padding: "6px 12px", color: "var(--text)", fontSize: 13, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
       <span style={{ fontSize: 15 }}>🌐</span>
-      {lang === "en" ? "العربية" : "English"}
+      {NEXT_LANG_LABEL[lang]}
     </button>
   );
 }
@@ -356,8 +488,8 @@ function Nav({ tab, setTab, t }) {
   );
   return (
     <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, height: "calc(var(--nav) + var(--safe))", paddingBottom: "var(--safe)", background: "rgba(6,13,26,.95)", borderTop: "1px solid rgba(255,255,255,.06)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", zIndex: 100 }}>
-      {btn("home", t.signIn === "Sign in" ? "Home" : "الرئيسية", a => <svg viewBox="0 0 24 24" width="22" height="22" fill={a ? "rgba(79,163,232,.2)" : "none"} stroke={a ? "var(--blue)" : "var(--t3)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12L12 3l9 9" /><path d="M9 21V12h6v9" /></svg>)}
-      {btn("stats", t.yourStats === "Your stats" ? "Stats" : "إحصاء", a => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={a ? "var(--blue)" : "var(--t3)"} strokeWidth="1.8"><rect x="3" y="12" width="4" height="9" rx="1" fill={a ? "rgba(79,163,232,.25)" : "none"} /><rect x="10" y="7" width="4" height="14" rx="1" fill={a ? "rgba(79,163,232,.25)" : "none"} /><rect x="17" y="3" width="4" height="18" rx="1" fill={a ? "rgba(79,163,232,.25)" : "none"} /></svg>)}
+      {btn("home", lang === "ar" ? "الرئيسية" : lang === "fr" ? "Accueil" : "Home", a => <svg viewBox="0 0 24 24" width="22" height="22" fill={a ? "rgba(79,163,232,.2)" : "none"} stroke={a ? "var(--blue)" : "var(--t3)"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12L12 3l9 9" /><path d="M9 21V12h6v9" /></svg>)}
+      {btn("stats", lang === "ar" ? "إحصاء" : lang === "fr" ? "Stats" : "Stats", a => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={a ? "var(--blue)" : "var(--t3)"} strokeWidth="1.8"><rect x="3" y="12" width="4" height="9" rx="1" fill={a ? "rgba(79,163,232,.25)" : "none"} /><rect x="10" y="7" width="4" height="14" rx="1" fill={a ? "rgba(79,163,232,.25)" : "none"} /><rect x="17" y="3" width="4" height="18" rx="1" fill={a ? "rgba(79,163,232,.25)" : "none"} /></svg>)}
       {btn("settings", t.settings, a => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={a ? "var(--blue)" : "var(--t3)"} strokeWidth="1.8"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06-.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" /></svg>)}
     </nav>
   );
@@ -459,6 +591,8 @@ function HomeTab({ token, userId, goal, onGoalChange, logs, onLogged, onSignOut,
   const greeting = h < 12 ? t.goodMorning : h < 17 ? t.goodAfternoon : t.goodEvening;
   const msgs = lang === "ar"
     ? ["رشفة رائعة! 💧", "ابقَ منتعشاً! 🌊", "جسمك يشكرك! ✨", "واصل! 🚀", "انتصار للترطيب! 💎"]
+    : lang === "fr"
+    ? ["Belle gorgée ! 💧", "Restez frais ! 🌊", "Votre corps vous remercie ! ✨", "Continuez ! 🚀", "Hydratation réussie ! 💎"]
     : ["Great sip! 💧", "Stay fresh! 🌊", "Body thanks you! ✨", "Keep it up! 🚀", "Hydration win! 💎"];
 
   const logWater = async (ml) => {
@@ -535,7 +669,7 @@ function HomeTab({ token, userId, goal, onGoalChange, logs, onLogged, onSignOut,
                   <div style={{ width: 32, height: 32, borderRadius: 10, background: "rgba(79,163,232,.1)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <Drop size={14} color="#4fa3e8" />
                   </div>
-                  <span style={{ fontSize: 14, color: "var(--t2)" }}>{new Date(l.logged_at).toLocaleTimeString(lang === "ar" ? "ar-SA" : "en-US", { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span style={{ fontSize: 14, color: "var(--t2)" }}>{new Date(l.logged_at).toLocaleTimeString(lang === "ar" ? "ar-SA" : lang === "fr" ? "fr-FR" : "en-US", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: 15, fontWeight: 500, color: "var(--blue)" }}>{l.amount_ml} {t.ml}</span>
@@ -561,16 +695,20 @@ function StatsTab({ allLogs, goal, t }) {
   const now = new Date();
   const todayStr = today();
   const weekData = () => {
-    const days = t.week === "Week"
-      ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
-      : ["أحد","إثن","ثلا","أرب","خمس","جمع","سبت"];
+    const days = lang === "ar"
+      ? ["أحد","إثن","ثلا","أرب","خمس","جمع","سبت"]
+      : lang === "fr"
+      ? ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"]
+      : ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
     return Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); const ds = d.toISOString().split("T")[0]; return { label: days[d.getDay()], value: sum(allLogs.filter(l => l.logged_at?.startsWith(ds)), "amount_ml") }; });
   };
-  const monthData = () => Array.from({ length: 4 }, (_, i) => { const s = new Date(); s.setDate(s.getDate() - (27 - i * 7)); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(e.getDate() + 6); return { label: `${t.week === "Week" ? "W" : "أ"}${i+1}`, value: sum(allLogs.filter(l => { const d = new Date(l.logged_at); return d >= s && d <= e; }), "amount_ml") }; });
+  const monthData = () => Array.from({ length: 4 }, (_, i) => { const s = new Date(); s.setDate(s.getDate() - (27 - i * 7)); s.setHours(0,0,0,0); const e = new Date(s); e.setDate(e.getDate() + 6); return { label: `${lang === "ar" ? "أ" : "W"}${i+1}`, value: sum(allLogs.filter(l => { const d = new Date(l.logged_at); return d >= s && d <= e; }), "amount_ml") }; });
   const yearData = () => {
-    const mo = t.week === "Week"
-      ? ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-      : ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+    const mo = lang === "ar"
+      ? ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+      : lang === "fr"
+      ? ["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Août","Sep","Oct","Nov","Déc"]
+      : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     return Array.from({ length: 12 }, (_, i) => ({ label: mo[i], value: sum(allLogs.filter(l => new Date(l.logged_at).getMonth() === i), "amount_ml") }));
   };
   const data = view === "week" ? weekData() : view === "month" ? monthData() : yearData();
@@ -657,7 +795,7 @@ function SettingsTab({ token, userId, goal, onGoalChange, onSignOut, t, lang, on
         <div className="row" style={{ borderBottom: "none" }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 500 }}>🌐 {t.language}</div>
-            <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{lang === "en" ? "English" : "العربية"}</div>
+            <div style={{ fontSize: 12, color: "var(--t3)", marginTop: 2 }}>{lang === "en" ? "English" : lang === "ar" ? "العربية" : "Français"}</div>
           </div>
           <LangToggle lang={lang} onToggle={onLangToggle} />
         </div>
@@ -781,7 +919,7 @@ function MainApp({ token, userId, goal, onGoalChange, onSignOut }) {
   useEffect(() => { fetchToday(); fetchAll(); }, [fetchToday, fetchAll]);
 
   const refresh = async () => { await fetchToday(); fetchAll(); };
-  const toggleLang = () => { const nl = lang === "en" ? "ar" : "en"; saveLang(nl); setLang(nl); };
+  const toggleLang = () => { const nl = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]; saveLang(nl); setLang(nl); };
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg)", overflowY: "auto" }} dir={rtl ? "rtl" : "ltr"}>
@@ -810,7 +948,7 @@ function AuthScreen({ onAuth }) {
   const [lang, setLang] = useState(loadLang);
   const t = T[lang];
   const rtl = lang === "ar";
-  const toggleLang = () => { const nl = lang === "en" ? "ar" : "en"; saveLang(nl); setLang(nl); };
+  const toggleLang = () => { const nl = LANGS[(LANGS.indexOf(lang) + 1) % LANGS.length]; saveLang(nl); setLang(nl); };
 
   const submit = async () => {
     if (!email || !password) { setMsg(t.fillFields); return; }
@@ -820,6 +958,7 @@ function AuthScreen({ onAuth }) {
     if (d.error) { setMsg(d.error.message); setLoading(false); return; }
     localStorage.setItem("hydro_token", d.access_token);
     localStorage.setItem("hydro_uid", d.user.id);
+    if (d.refresh_token) localStorage.setItem("hydro_refresh", d.refresh_token);
     onAuth(d.access_token, d.user.id);
     setLoading(false);
   };
@@ -865,7 +1004,7 @@ function AuthScreen({ onAuth }) {
             <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             {t.continueGoogle}
           </button>
-          {msg && <div style={{ marginTop: 14, fontSize: 13, textAlign: "center", padding: "10px 14px", borderRadius: 12, background: msg.includes("Check") || msg.includes("تحقق") ? "rgba(78,203,141,.1)" : "rgba(255,90,90,.1)", color: msg.includes("Check") || msg.includes("تحقق") ? "var(--success)" : "var(--danger)" }}>{msg}</div>}
+          {msg && <div style={{ marginTop: 14, fontSize: 13, textAlign: "center", padding: "10px 14px", borderRadius: 12, background: msg.includes("Check") || msg.includes("تحقق") || msg.includes("Vérifiez") ? "rgba(78,203,141,.1)" : "rgba(255,90,90,.1)", color: msg.includes("Check") || msg.includes("تحقق") || msg.includes("Vérifiez") ? "var(--success)" : "var(--danger)" }}>{msg}</div>}
         </div>
         <div className="fu2" style={{ textAlign: "center", marginTop: 18, fontSize: 12, color: "var(--t3)" }}>{t.agreeText}</div>
       </div>
@@ -931,15 +1070,68 @@ export default function App() {
     }
   }, []);
 
+  // Validate session on mount — refresh token if expired
   useEffect(() => {
     if (!token || !userId) { setChecking(false); return; }
-    sb.getProfile(token, userId).then(p => { if (p?.daily_goal_ml) setGoal(p.daily_goal_ml); setChecking(false); }).catch(() => setChecking(false));
-  }, [token, userId]);
+    const validate = async () => {
+      let activeToken = token;
+      // Try profile fetch — if it fails, refresh the token
+      let profile = await sb.getProfile(activeToken, userId).catch(() => null);
+      if (!profile || profile.code) {
+        activeToken = await refreshSession();
+        if (!activeToken) {
+          // Refresh failed — session is truly expired, force sign out
+          localStorage.removeItem("hydro_token");
+          localStorage.removeItem("hydro_uid");
+          localStorage.removeItem("hydro_refresh");
+          setToken(null); setUserId(null); setChecking(false);
+          return;
+        }
+        setToken(activeToken);
+        profile = await sb.getProfile(activeToken, userId).catch(() => null);
+      }
+      if (profile?.daily_goal_ml) setGoal(profile.daily_goal_ml);
+      setChecking(false);
+    };
+    validate();
+  }, [userId]);
+
+  // Re-validate session whenever app comes back into focus (PWA resume)
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      const storedToken = localStorage.getItem("hydro_token");
+      const storedUid = localStorage.getItem("hydro_uid");
+      if (!storedToken || !storedUid) return;
+      // Quick check — if token still works, update state silently
+      const profile = await sb.getProfile(storedToken, storedUid).catch(() => null);
+      if (profile && !profile.code) {
+        setToken(storedToken);
+        if (profile.daily_goal_ml) setGoal(profile.daily_goal_ml);
+        return;
+      }
+      // Token expired — try to refresh
+      const newToken = await refreshSession();
+      if (newToken) {
+        setToken(newToken);
+        const p = await sb.getProfile(newToken, storedUid).catch(() => null);
+        if (p?.daily_goal_ml) setGoal(p.daily_goal_ml);
+      } else {
+        // Can't refresh — force sign out
+        localStorage.removeItem("hydro_token");
+        localStorage.removeItem("hydro_uid");
+        localStorage.removeItem("hydro_refresh");
+        setToken(null); setUserId(null); setGoal(null);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
 
   const handleAuth = (t, uid) => { setToken(t); setUserId(uid); };
   const handleSignOut = async () => {
     if (token) await sb.signOut(token);
-    localStorage.removeItem("hydro_token"); localStorage.removeItem("hydro_uid");
+    localStorage.removeItem("hydro_token"); localStorage.removeItem("hydro_uid"); localStorage.removeItem("hydro_refresh");
     setToken(null); setUserId(null); setGoal(null);
   };
 
