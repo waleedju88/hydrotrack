@@ -674,13 +674,41 @@ function StatsTab({ allLogs, goal, t }) {
           ))}
         </div>
         <div style={{ fontSize: 11, color: "var(--t3)", marginBottom: 8 }}>{t.goalPerDay}: {toL(goal)} L</div>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 130 }}>
-          {data.map((d, i) => (
-            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
-              <div style={{ width: "100%", height: Math.max(3, (d.value / maxV) * 112), background: d.value >= goal ? "linear-gradient(to top,#4ecb8d,rgba(78,203,141,.4))" : "linear-gradient(to top,#4fa3e8,rgba(79,163,232,.3))", borderRadius: "6px 6px 0 0", transition: "height .5s cubic-bezier(.4,0,.2,1)" }} />
-              <span style={{ fontSize: 9, color: "var(--t3)", whiteSpace: "nowrap", textAlign: "center" }}>{d.label}</span>
-            </div>
-          ))}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 160 }}>
+          {data.map((d, i) => {
+            const barH = Math.max(3, (d.value / maxV) * 112);
+            const hitGoal = d.value >= goal;
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                {/* Amount label above bar */}
+                {d.value > 0 && (
+                  <span style={{
+                    fontSize: 8,
+                    fontWeight: 500,
+                    color: hitGoal ? "#4ecb8d" : "var(--blue)",
+                    whiteSpace: "nowrap",
+                    textAlign: "center",
+                    lineHeight: 1,
+                  }}>
+                    {toL(d.value)}L
+                  </span>
+                )}
+                {d.value === 0 && <span style={{ fontSize: 8, color: "transparent" }}>0L</span>}
+                {/* Bar */}
+                <div style={{
+                  width: "100%",
+                  height: barH,
+                  background: hitGoal
+                    ? "linear-gradient(to top,#4ecb8d,rgba(78,203,141,.4))"
+                    : "linear-gradient(to top,#4fa3e8,rgba(79,163,232,.3))",
+                  borderRadius: "6px 6px 0 0",
+                  transition: "height .5s cubic-bezier(.4,0,.2,1)",
+                }} />
+                {/* Day label below bar */}
+                <span style={{ fontSize: 9, color: "var(--t3)", whiteSpace: "nowrap", textAlign: "center" }}>{d.label}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
