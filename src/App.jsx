@@ -220,15 +220,63 @@ const sb = {
   },
 };
 
+// ── SESSION STORAGE (localStorage + cookie for cross-context sharing) ────────
+// Cookies are shared between Safari tab and PWA on the same domain.
+// This fixes the Back Tap shortcut always asking to sign in.
+const COOKIE_OPTS = "; path=/; max-age=7776000; SameSite=Strict"; // 90 days
+
+function setCookie(name, value) {
+  document.cookie = `${name}=${encodeURIComponent(value)}${COOKIE_OPTS}`;
+}
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
+function deleteCookie(name) {
+  document.cookie = `${name}=; path=/; max-age=0`;
+}
+
+function saveSession(token, uid, refresh) {
+  // Save to both localStorage and cookies
+  localStorage.setItem("hydro_token", token);
+  localStorage.setItem("hydro_uid", uid);
+  if (refresh) localStorage.setItem("hydro_refresh", refresh);
+  setCookie("hydro_token", token);
+  setCookie("hydro_uid", uid);
+  if (refresh) setCookie("hydro_refresh", refresh);
+}
+
+function loadSession() {
+  // Try localStorage first, fall back to cookies
+  const token   = localStorage.getItem("hydro_token")   || getCookie("hydro_token");
+  const uid     = localStorage.getItem("hydro_uid")     || getCookie("hydro_uid");
+  const refresh = localStorage.getItem("hydro_refresh") || getCookie("hydro_refresh");
+  // If found in cookies but not localStorage, restore to localStorage
+  if (token) localStorage.setItem("hydro_token", token);
+  if (uid)   localStorage.setItem("hydro_uid", uid);
+  if (refresh) localStorage.setItem("hydro_refresh", refresh);
+  return { token, uid, refresh };
+}
+
+function clearSession() {
+  localStorage.removeItem("hydro_token");
+  localStorage.removeItem("hydro_uid");
+  localStorage.removeItem("hydro_refresh");
+  deleteCookie("hydro_token");
+  deleteCookie("hydro_uid");
+  deleteCookie("hydro_refresh");
+}
+
 // ── TOKEN REFRESH ─────────────────────────────────────────────────────────────
 async function refreshSession() {
-  const rt = localStorage.getItem("hydro_refresh");
+  const rt = localStorage.getItem("hydro_refresh") || getCookie("hydro_refresh");
   if (!rt) return null;
   try {
     const data = await sb.refreshToken(rt);
     if (data?.access_token) {
-      localStorage.setItem("hydro_token", data.access_token);
-      if (data.refresh_token) localStorage.setItem("hydro_refresh", data.refresh_token);
+      saveSession(data.access_token,
+        localStorage.getItem("hydro_uid") || getCookie("hydro_uid") || "",
+        data.refresh_token || rt);
       return data.access_token;
     }
   } catch {}
@@ -949,9 +997,7 @@ function AuthScreen({ onAuth }) {
     if (mode === "signup") { const d = await sb.signUp(email, password); setMsg(d.error ? d.error.message : t.checkEmail); setLoading(false); return; }
     const d = await sb.signIn(email, password);
     if (d.error) { setMsg(d.error.message); setLoading(false); return; }
-    localStorage.setItem("hydro_token", d.access_token);
-    localStorage.setItem("hydro_uid", d.user.id);
-    if (d.refresh_token) localStorage.setItem("hydro_refresh", d.refresh_token);
+    saveSession(d.access_token, d.user.id, d.refresh_token);
     onAuth(d.access_token, d.user.id);
     setLoading(false);
   };
@@ -1044,8 +1090,8 @@ function SetupScreen({ token, userId, onDone }) {
 
 // ── ROOT ──────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [token, setToken] = useState(() => localStorage.getItem("hydro_token"));
-  const [userId, setUserId] = useState(() => localStorage.getItem("hydro_uid"));
+  const [token, setToken] = useState(() => loadSession().token);
+  const [userId, setUserId] = useState(() => loadSession().uid);
   const [goal, setGoal] = useState(null);
   const [checking, setChecking] = useState(true);
   const lang = loadLang();
@@ -1059,10 +1105,8 @@ export default function App() {
       const t = params.get("access_token");
       if (t) sb.getUser(t).then(u => {
         if (u?.id) {
-            localStorage.setItem("hydro_token", t);
-            localStorage.setItem("hydro_uid", u.id);
             const rt = params.get("refresh_token");
-            if (rt) localStorage.setItem("hydro_refresh", rt);
+            saveSession(t, u.id, rt);
             setToken(t); setUserId(u.id);
             window.history.replaceState({}, "", window.location.pathname);
           }
@@ -1081,9 +1125,7 @@ export default function App() {
         activeToken = await refreshSession();
         if (!activeToken) {
           // Refresh also failed — force sign out
-          localStorage.removeItem("hydro_token");
-          localStorage.removeItem("hydro_uid");
-          localStorage.removeItem("hydro_refresh");
+          clearSession();
           setToken(null); setUserId(null); setChecking(false);
           return;
         }
@@ -1118,9 +1160,7 @@ export default function App() {
         if (p?.daily_goal_ml) setGoal(p.daily_goal_ml);
       } else {
         // Can't recover — sign out cleanly
-        localStorage.removeItem("hydro_token");
-        localStorage.removeItem("hydro_uid");
-        localStorage.removeItem("hydro_refresh");
+        clearSession();
         setToken(null); setUserId(null); setGoal(null);
       }
     };
@@ -1131,7 +1171,7 @@ export default function App() {
   const handleAuth = (t, uid) => { setToken(t); setUserId(uid); };
   const handleSignOut = async () => {
     if (token) await sb.signOut(token);
-    localStorage.removeItem("hydro_token"); localStorage.removeItem("hydro_uid"); localStorage.removeItem("hydro_refresh");
+    clearSession();
     setToken(null); setUserId(null); setGoal(null);
   };
 
